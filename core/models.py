@@ -61,6 +61,9 @@ class Item(models.Model):
     description_short = models.CharField(max_length=50)
     description_long = models.TextField()
     image = models.ImageField()
+    related_image_1 = models.ImageField()
+    related_image_2 = models.ImageField()
+    related_image_3 = models.ImageField()
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -154,8 +157,8 @@ class BillingAddress(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
     street_address = models.CharField(max_length=100)
-    apartment_address = models.CharField(max_length=100)
-    country = CountryField(multiple=False)
+    apartment_address = models.CharField(max_length=100, null=True)
+    country = CountryField(multiple=False, null=True)
     zip = models.CharField(max_length=100)
     address_type = models.CharField(max_length=1, choices=ADDRESS_CHOICES)
     default = models.BooleanField(default=False)
@@ -168,7 +171,7 @@ class BillingAddress(models.Model):
 
 
 class Payment(models.Model):
-    stripe_charge_id = models.CharField(max_length=50)
+    paystack_charge_id = models.CharField(max_length=50, null=True, blank=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.SET_NULL, blank=True, null=True)
     amount = models.FloatField()
@@ -176,6 +179,7 @@ class Payment(models.Model):
 
     def __str__(self):
         return self.user.username
+
 
 
 class Coupon(models.Model):

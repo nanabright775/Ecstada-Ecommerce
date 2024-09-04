@@ -11,7 +11,11 @@ from .views import (
     PaymentView,
     AddCouponView,
     RequestRefundView,
-    CategoryView
+    CategoryView,
+    filter_products,
+    paystack_callback,
+    payment_verification,
+    
 )
 
 app_name = 'core'
@@ -28,6 +32,13 @@ urlpatterns = [
     path('order-summary/', OrderSummaryView.as_view(), name='order-summary'),
     path('remove-item-from-cart/<slug>/', remove_single_item_from_cart,
          name='remove-single-item-from-cart'),
+    path('payment-verification/', payment_verification, name='payment-verification'),
     path('payment/<payment_option>/', PaymentView.as_view(), name='payment'),
-    path('request-refund/', RequestRefundView.as_view(), name='request-refund')
+    path('payment-completed/', paystack_callback, name='paystack-callback'),
+    path('request-refund/', RequestRefundView.as_view(), name='request-refund'),
+    path('filter/', filter_products, name='filter-products'),
+    path('add-to-cart/<slug:slug>/', add_to_cart, name='add-to-cart'),
+    path('remove-single-item-from-cart/<slug:slug>/', remove_single_item_from_cart, name='remove-single-item-from-cart'),
+    path('remove-from-cart/<slug:slug>/', remove_from_cart, name='remove-from-cart'),
+
 ]

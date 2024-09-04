@@ -1107,7 +1107,7 @@ li.sale-noti > a {
 
 .side-menu .sub-menu > li {
   padding-left: 12px;
-  padding-top: 
+  padding-top: 0; /* made changes here by adding 0 */
 }
 
 .side-menu .sub-menu a:hover {

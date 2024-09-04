@@ -19,6 +19,8 @@
 		</span>
 	</div>
 
+	
+
 	<!-- Product Detail -->
 	<div class="container bgwhite p-t-35 p-b-80">
 		<div class="flex-w flex-sb">
@@ -32,19 +34,31 @@
 								<img src="{{ object.image.url }}" alt="{{ object.title }}">
 							</div>
 						</div>
-
-						<div class="item-slick3" data-thumb="{% static 'images/product-detail2.jpg' %}">
+						{% if object.related_image_1 %}
+						<div class="item-slick3" data-thumb="{{ object.related_image_1.url }}">
 							<div class="wrap-pic-w">
-								<img src="{% static 'images/product-detail2.jpg' %}" alt="IMG-PRODUCT">
+								<img src="{{ object.related_image_1.url }}" alt="IMG-PRODUCT">
 							</div>
 						</div>
+						{% endif %}
 
-						<div class="item-slick3" data-thumb="{% static 'images/product-detail3.jpg' %}">
+						{% if object.related_image_1 %}
+						<div class="item-slick3" data-thumb="{{ object.related_image_2.url }}">
 							<div class="wrap-pic-w">
-								<img src="{% static 'images/product-detail3.jpg' %}" alt="IMG-PRODUCT">
+								<img src="{{ object.related_image_2.url }}" alt="IMG-PRODUCT">
 							</div>
 						</div>
+						{% endif %}
+						
+						{% if object.related_image_1 %}
+						<div class="item-slick3" data-thumb="{{ object.related_image_3.url }}">
+							<div class="wrap-pic-w">
+								<img src="{{ object.related_image_3.url }}" alt="IMG-PRODUCT">
+							</div>
+						</div>
+						{% endif %}
 					</div>
+					
 				</div>
 			</div>
 
@@ -56,15 +70,15 @@
 				
 				{% if object.discount_price %}
 								<span class="block2-oldprice m-text7 p-r-5" style="font-size: 1.5rem;">
-									${{ object.price }}
+									Ghc{{ object.price }}
 								</span>
 
 								<span class="block2-newprice m-text8 p-r-5" style="font-size: 1.5rem;">
-									${{ object.discount_price }}
+									Ghc{{ object.discount_price }}
 								</span>
 								{% else %}
 								<span class="m-text17">
-									${{object.price}}
+									Ghc{{object.price}}
 								</span>
 								{% endif %}
 
@@ -122,14 +136,20 @@
 							
 							<div class="btn-addcart-product-detail size9 trans-0-4 m-t-10 m-b-10" style="margin-bottom: 20px;">
 								<!-- Button -->
-								
-								
-								
+									
 							</div>
 							
-							<a href="{{ object.get_add_to_cart_url }}" class="btn btn-primary" style="margin: 2px;">Add to Cart</a>
-							<a href="{{object.get_remove_from_cart_url}}" class="btn btn-outline-dark" style="margin: 2px;">Remove from Cart</a>
-						</div>
+							<div class="d-flex flex-column flex-sm-row">
+								<a href="{{ object.get_add_to_cart_url }}" class="btn btn-primary mb-2 mb-sm-0 mr-sm-2" style="margin: 2px;">
+									Add to Cart
+								</a>
+								<a href="{{ object.get_remove_from_cart_url }}" class="btn btn-outline-dark" style="margin: 2px;">
+									Remove from Cart
+								</a>
+							</div>
+							
+
+							</div>
 					</div>
 				</div>
 				<br>
@@ -162,8 +182,7 @@
 
 					<div class="dropdown-content dis-none p-t-15 p-b-23">
 						<p class="s-text8">
-							Fusce ornare mi vel risus porttitor dignissim. Nunc eget risus at ipsum blandit ornare vel sed velit. Proin gravida arcu nisl, a dignissim mauris placerat
-						</p>
+							Experience timeless elegance with this dress, featuring a sophisticated design and luxurious fabric.						</p>
 					</div>
 				</div>
 
@@ -194,283 +213,77 @@
 				</h3>
 			</div>
 
-			<!-- Slide2 -->
 			<div class="wrap-slick2">
 				<div class="slick2">
-
-					<div class="item-slick2 p-l-15 p-r-15">
-						<!-- Block2 -->
-						<div class="block2">
-							<div class="block2-img wrap-pic-w of-hidden pos-relative block2-labelnew">
-								<img src="{% static 'images/item-02.webp' %}" alt="IMG-PRODUCT">
-
-								<div class="block2-overlay trans-0-4">
-									<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-										<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-										<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
-									</a>
-
-									<div class="block2-btn-addcart w-size1 trans-0-4">
-										<!-- Button -->
-										<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-											Add to Cart
-										</button>
+					{% for item in object.category.item_set.all %}
+						<div class="item-slick2 p-l-15 p-r-15">
+							<!-- Block2 -->
+							<div class="block2">
+								<div class="block2-img wrap-pic-w of-hidden pos-relative">
+									<img src="{{ item.image.url }}" alt="{{ item.title }}">
+									
+									<!-- If you want to add related images as well -->
+									<div class="block2-overlay trans-0-4">
+										<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
+											<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
+											<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
+										</a>
+			
+										<div class="block2-btn-addcart w-size1 trans-0-4">
+											<!-- Button -->
+											<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
+												Add to Cart
+											</button>
+										</div>
 									</div>
 								</div>
-							</div>
-
-							<div class="block2-txt p-t-20">
-								<a href="product-detail.html" class="block2-name dis-block s-text3 p-b-5">
-									Herschel supply co 25l
-								</a>
-
-								<span class="block2-price m-text6 p-r-5">
-									$75.00
-								</span>
-							</div>
-						</div>
-					</div>
-
-					<div class="item-slick2 p-l-15 p-r-15">
-						<!-- Block2 -->
-						<div class="block2">
-							<div class="block2-img wrap-pic-w of-hidden pos-relative">
-								<img src="{% static 'images/item-03.webp' %}" alt="IMG-PRODUCT">
-
-								<div class="block2-overlay trans-0-4">
-									<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-										<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-										<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
+			
+								<div class="block2-txt p-t-20">
+									<a href="#" class="block2-name dis-block s-text3 p-b-5">
+										{{ item.title }}
 									</a>
-
-									<div class="block2-btn-addcart w-size1 trans-0-4">
-										<!-- Button -->
-										<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-											Add to Cart
-										</button>
-									</div>
+			
+									<span class="block2-price m-text6 p-r-5">
+										${{ item.price }}
+									</span>
 								</div>
 							</div>
-
-							<div class="block2-txt p-t-20">
-								<a href="product-detail.html" class="block2-name dis-block s-text3 p-b-5">
-									Denim jacket blue
-								</a>
-
-								<span class="block2-price m-text6 p-r-5">
-									$92.50
-								</span>
-							</div>
 						</div>
-					</div>
-
-					<div class="item-slick2 p-l-15 p-r-15">
-						<!-- Block2 -->
-						<div class="block2">
-							<div class="block2-img wrap-pic-w of-hidden pos-relative">
-								<img src="{% static 'images/item-05.webp' %}" alt="IMG-PRODUCT">
-
-								<div class="block2-overlay trans-0-4">
-									<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-										<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-										<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
-									</a>
-
-									<div class="block2-btn-addcart w-size1 trans-0-4">
-										<!-- Button -->
-										<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-											Add to Cart
-										</button>
-									</div>
+			
+						<!-- Add related images for each item if they exist -->
+						{% if item.related_image_1 %}
+						<div class="item-slick2 p-l-15 p-r-15">
+							<div class="block2">
+								<div class="block2-img wrap-pic-w of-hidden pos-relative">
+									<img src="{{ item.related_image_1.url }}" alt="Related Image 1">
 								</div>
 							</div>
-
-							<div class="block2-txt p-t-20">
-								<a href="product-detail.html" class="block2-name dis-block s-text3 p-b-5">
-									Coach slim easton black
-								</a>
-
-								<span class="block2-price m-text6 p-r-5">
-									$165.90
-								</span>
-							</div>
 						</div>
-					</div>
-
-					<div class="item-slick2 p-l-15 p-r-15">
-						<!-- Block2 -->
-						<div class="block2">
-							<div class="block2-img wrap-pic-w of-hidden pos-relative block2-labelsale">
-								<img src="{% static 'images/item-07.webp' %}" alt="IMG-PRODUCT">
-
-								<div class="block2-overlay trans-0-4">
-									<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-										<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-										<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
-									</a>
-
-									<div class="block2-btn-addcart w-size1 trans-0-4">
-										<!-- Button -->
-										<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-											Add to Cart
-										</button>
-									</div>
+						{% endif %}
+			
+						{% if item.related_image_2 %}
+						<div class="item-slick2 p-l-15 p-r-15">
+							<div class="block2">
+								<div class="block2-img wrap-pic-w of-hidden pos-relative">
+									<img src="{{ item.related_image_2.url }}" alt="Related Image 2">
 								</div>
 							</div>
-
-							<div class="block2-txt p-t-20">
-								<a href="product-detail.html" class="block2-name dis-block s-text3 p-b-5">
-									Frayed denim shorts
-								</a>
-
-								<span class="block2-oldprice m-text7 p-r-5">
-									$29.50
-								</span>
-
-								<span class="block2-newprice m-text8 p-r-5">
-									$15.90
-								</span>
-							</div>
 						</div>
-					</div>
-
-					<div class="item-slick2 p-l-15 p-r-15">
-						<!-- Block2 -->
-						<div class="block2">
-							<div class="block2-img wrap-pic-w of-hidden pos-relative block2-labelnew">
-								<img src="{% static 'images/item-02.webp' %}" alt="IMG-PRODUCT">
-
-								<div class="block2-overlay trans-0-4">
-									<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-										<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-										<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
-									</a>
-
-									<div class="block2-btn-addcart w-size1 trans-0-4">
-										<!-- Button -->
-										<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-											Add to Cart
-										</button>
-									</div>
+						{% endif %}
+			
+						{% if item.related_image_3 %}
+						<div class="item-slick2 p-l-15 p-r-15">
+							<div class="block2">
+								<div class="block2-img wrap-pic-w of-hidden pos-relative">
+									<img src="{{ item.related_image_3.url }}" alt="Related Image 3">
 								</div>
 							</div>
-
-							<div class="block2-txt p-t-20">
-								<a href="product-detail.html" class="block2-name dis-block s-text3 p-b-5">
-									Herschel supply co 25l
-								</a>
-
-								<span class="block2-price m-text6 p-r-5">
-									$75.00
-								</span>
-							</div>
 						</div>
-					</div>
-
-					<div class="item-slick2 p-l-15 p-r-15">
-						<!-- Block2 -->
-						<div class="block2">
-							<div class="block2-img wrap-pic-w of-hidden pos-relative">
-								<img src="{% static 'images/item-03.webp' %}" alt="IMG-PRODUCT">
-
-								<div class="block2-overlay trans-0-4">
-									<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-										<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-										<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
-									</a>
-
-									<div class="block2-btn-addcart w-size1 trans-0-4">
-										<!-- Button -->
-										<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-											Add to Cart
-										</button>
-									</div>
-								</div>
-							</div>
-
-							<div class="block2-txt p-t-20">
-								<a href="product-detail.html" class="block2-name dis-block s-text3 p-b-5">
-									Denim jacket blue
-								</a>
-
-								<span class="block2-price m-text6 p-r-5">
-									$92.50
-								</span>
-							</div>
-						</div>
-					</div>
-
-					<div class="item-slick2 p-l-15 p-r-15">
-						<!-- Block2 -->
-						<div class="block2">
-							<div class="block2-img wrap-pic-w of-hidden pos-relative">
-								<img src="{% static 'images/item-05.webp' %}" alt="IMG-PRODUCT">
-
-								<div class="block2-overlay trans-0-4">
-									<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-										<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-										<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
-									</a>
-
-									<div class="block2-btn-addcart w-size1 trans-0-4">
-										<!-- Button -->
-										<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-											Add to Cart
-										</button>
-									</div>
-								</div>
-							</div>
-
-							<div class="block2-txt p-t-20">
-								<a href="product-detail.html" class="block2-name dis-block s-text3 p-b-5">
-									Coach slim easton black
-								</a>
-
-								<span class="block2-price m-text6 p-r-5">
-									$165.90
-								</span>
-							</div>
-						</div>
-					</div>
-
-					<div class="item-slick2 p-l-15 p-r-15">
-						<!-- Block2 -->
-						<div class="block2">
-							<div class="block2-img wrap-pic-w of-hidden pos-relative block2-labelsale">
-								<img src="{% static 'images/item-07.webp' %}" alt="IMG-PRODUCT">
-
-								<div class="block2-overlay trans-0-4">
-									<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-										<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-										<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
-									</a>
-
-									<div class="block2-btn-addcart w-size1 trans-0-4">
-										<!-- Button -->
-										<button class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-											Add to Cart
-										</button>
-									</div>
-								</div>
-							</div>
-
-							<div class="block2-txt p-t-20">
-								<a href="product-detail.html" class="block2-name dis-block s-text3 p-b-5">
-									Frayed denim shorts
-								</a>
-
-								<span class="block2-oldprice m-text7 p-r-5">
-									$29.50
-								</span>
-
-								<span class="block2-newprice m-text8 p-r-5">
-									$15.90
-								</span>
-							</div>
-						</div>
-					</div>
+						{% endif %}
+					{% endfor %}
 				</div>
 			</div>
+			
 
 		</div>
 	</section>

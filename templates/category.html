@@ -38,23 +38,27 @@
 				<div class="col-sm-6 col-md-4 col-lg-3 p-b-50">
 					<div class="leftbar p-r-20 p-r-0-sm">
 						<!--  -->
-						<h4 class="m-text14 p-b-7">
-							Categories
-						</h4>
-
-						<ul class="p-b-54">
-							<li class="p-t-4">
-								<a href="/shop" class="s-text13 active1">
-									All
-								</a>
-							</li>
-
-							{% categories_li_a %}
-
-						</ul>
+						<div class="">
+							<div class="card-header list-group">
+								<h4 class="m-text14 p-b-7 ml-2">
+									Categories
+								</h4>
+							</div>
+								<ul class="list-group-item">
+									<li class="">
+										<a href="/shop" class="s-text13">
+											All
+										</a>
+									</li>
+						
+									<!-- This will be populated dynamically by your Django template -->
+									{% categories_li_a %}
+						
+								</ul>
+						</div>
 
 						<!--  -->
-						<h4 class="m-text14 p-b-32">
+						<h4 class="m-text14 p-b-32 mt-4">
 							Filters
 						</h4>
 
@@ -70,14 +74,22 @@
 							<div class="flex-sb-m flex-w p-t-16">
 								<div class="w-size11">
 									<!-- Button -->
-									<button class="flex-c-m size4 bg7 bo-rad-15 hov1 s-text14 trans-0-4">
+									<button id="filter-button" class="flex-c-m size4 bg7 bo-rad-15 hov1 s-text14 trans-0-4">
 										Filter
 									</button>
 								</div>
 
 								<div class="s-text3 p-t-10 p-b-10">
-									Range: $<span id="value-lower">610</span> - $<span id="value-upper">980</span>
-								</div>
+									<label for="price-range">Select Price Range:</label>
+									<select id="price-range" class="selection-2" name="price-range">
+										<option value="0-10000">All</option>
+										<option value="0-50">Ghc0.00 - Ghc50.00</option>
+										<option value="50-100">Ghc50.00 - Ghc100.00</option>
+										<option value="100-150">Ghc100.00 - Ghc150.00</option>
+										<option value="150-200">Ghc150.00 - Ghc200.00</option>
+										<option value="200-10000">Ghc200.00+</option>
+									</select>
+								</div>	 
 							</div>
 						</div>
 
@@ -137,7 +149,7 @@
 				<div class="col-sm-6 col-md-8 col-lg-9 p-b-50">
 					<!--  -->
 					<div class="flex-sb-m flex-w p-b-35">
-						<div class="flex-w">
+						{% comment %} <div class="flex-w">
 						
 							<div class="rs2-select2 bo4 of-hidden w-size12 m-t-5 m-b-5 m-r-10" >
 								<select class="selection-2" name="sorting">
@@ -159,58 +171,36 @@
 
 								</select>
 							</div>
-						</div>
-
+						</div> {% endcomment %}
+{% comment %} 
 						<span class="s-text8 p-t-5 p-b-5">
 							Showing 1–12 of 16 results
-						</span>
+						</span> {% endcomment %}
 					</div>
 
 					<!-- Product -->
-					<div class="row">
+					<div class="row" id="product-list">
 						{% for item in object_list %}
 						<div class="col-sm-12 col-md-6 col-lg-4 p-b-50">
-							<!-- Block2 -->
 							<div class="block2">
 								<a href="{{item.get_absolute_url}}">
 								<div class="block2-img wrap-pic-w of-hidden pos-relative block2-labelnew">
-									<img src="{{ item.image.url }}" alt="IMG-PRODUCT" 
-								style="height: 360px;">
-
-								  
-									<!-- <div class="block2-overlay trans-0-4">
-										<a href="#" class="block2-btn-addwishlist hov-pointer trans-0-4">
-											<i class="icon-wishlist icon_heart_alt" aria-hidden="true"></i>
-											<i class="icon-wishlist icon_heart dis-none" aria-hidden="true"></i>
-										</a> -->
-
-										<!-- <div class="block2-btn-addcart w-size1 trans-0-4"> -->
-											<!-- Button -->
-											<!-- <a class="flex-c-m size1 bg4 bo-rad-23 hov1 s-text1 trans-0-4">
-												Add to Cart
-											</a>
-										</div> -->
-									<!-- </div> -->
-									
+									<img src="{{ item.image.url }}" alt="IMG-PRODUCT" style="height: 360px;">
 								</div>
-							</a>
-
+								</a>
 								<div class="block2-txt p-t-20">
 									<a href="{{item.get_absolute_url}}" class="block2-name dis-block s-text3 p-b-5">
 										{{item.title}}
 									</a>
-
 									<span class="block2-price m-text6 p-r-5">
-										${{item.price}}
+										Ghc{{item.price}}
 									</span>
 								</div>
 							</div>
 						</div>
 						{% endfor %}
-
-						
-
-						
+					</div>
+							
 				
 				</div>
 				<!-- ---- row end ------- -->
@@ -240,5 +230,72 @@
 		</div>
 	</section>
 
+<script>
+//handles the filter range value passing and displays the categories item	
 
-		{% endblock content %}
+
+document.querySelector('#filter-button').addEventListener('click', function() {
+    var selectedRange = document.getElementById('price-range').value;
+    var ranges = selectedRange.split('-');
+    var lower = ranges[0];
+    var upper = ranges[1];
+
+    fetch(`?lower=${lower}&upper=${upper}`)
+        .then(response => response.text())
+        .then(data => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data, 'text/html');
+            const newProductList = doc.getElementById('product-list').innerHTML;
+
+            document.getElementById('product-list').innerHTML = newProductList;
+        })
+        .catch(error => console.error('Error:', error));
+});
+
+
+
+
+
+	{% comment %} document.querySelector('.flex-c-m.size4.bg7.bo-rad-15.hov1.s-text14.trans-0-4').addEventListener('click', function() {
+	var selectedRange = document.getElementById('price-range').value;
+	var ranges = selectedRange.split('-');
+	var lower = ranges[0];
+	var upper = ranges[1];
+
+	fetch(`/filter/?lower=${lower}&upper=${upper}`)
+		.then(response => response.json())
+		.then(data => {
+			const productList = document.getElementById('product-list');
+			productList.innerHTML = ''; // Clear existing products
+
+			data.products.forEach(product => {
+				const productHTML = `
+					<div class="col-sm-12 col-md-6 col-lg-4 p-b-50">
+						<div class="block2">
+							<a href="/product/${product.slug}">
+								<div class="block2-img wrap-pic-w of-hidden pos-relative block2-labelnew">
+									<img src="${product.image_url}" alt="${product.title}" style="height: 360px;">
+								</div>
+							</a>
+							<div class="block2-txt p-t-20">
+								<a href="/product/${product.slug}" class="block2-name dis-block s-text3 p-b-5">
+									${product.title}
+								</a>
+								<span class="block2-price m-text6 p-r-5">
+									Ghc${product.price}
+								</span>
+							</div>
+						</div>
+					</div>
+				`;
+				productList.innerHTML += productHTML; // Append each product's HTML
+			});
+		})
+		.catch(error => console.error('Error:', error));
+	});
+	 {% endcomment %}
+		
+	</script>
+
+
+{% endblock content %}

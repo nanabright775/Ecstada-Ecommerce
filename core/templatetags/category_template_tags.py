@@ -28,28 +28,34 @@ def categories_li_a():
     items = Category.objects.filter(is_active=True).order_by('title')
     items_li_a = ""
     for i in items:
-        items_li_a += """<li class="p-t-4"><a href="/category/{}" class="s-text13">{}</a></li>""".format(i.slug,
-                                                                                                         i.title)
+        items_li_a += """<li class="list-group">
+                            <a href="/category/{}" class="s-text13">{}</a>
+                         </li>""".format(i.slug, i.title)
     return mark_safe(items_li_a)
 
 
 @register.simple_tag
 def categories_div():
     """
-    section banner
-    :return:
+    Generate HTML for displaying categories in a Bootstrap card layout.
+    :return: Safe HTML string
     """
-    items = Category.objects.filter(is_active=True).order_by('title')
-    items_div = ""
+    items = Category.objects.filter(is_active=True).order_by('title')[:10]  # Limit to 10 items
     item_div_list = ""
+    
     for i, j in enumerate(items):
-        if not i % 2:
-            items_div += """<div class="block1 hov-img-zoom pos-relative m-b-30"><img src="/media/{}" alt="IMG-BENNER"><div class="block1-wrapbtn w-size2"><a href="/category/{}" class="flex-c-m size2 m-text2 bg3 hov1 trans-0-4">{}</a></div></div>""".format(
-                j.image, j.slug, j.title)
-        else:
-            items_div_ = """<div class="block1 hov-img-zoom pos-relative m-b-30"><img src="/media/{}" alt="IMG-BENNER"><div class="block1-wrapbtn w-size2"><a href="/category/{}" class="flex-c-m size2 m-text2 bg3 hov1 trans-0-4">{}</a></div></div>""".format(
-                j.image, j.slug, j.title)
-            item_div_list += """<div class="col-sm-10 col-md-8 col-lg-4 m-l-r-auto">""" + items_div + items_div_ + """</div>"""
-            items_div = ""
+        item_div = f"""
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <img src="{j.image.url}" class="card-img-top img-fluid " alt="{j.title}" style="object-fit: cover; height: 300px;">
+                <div class="card-body">
+                    <h5 class="card-title">{j.title}</h5>
+                    <p class="card-text">{j.description[:100]}...</p>
+                    <a href="{j.get_absolute_url()}" class="btn btn-primary">View Category</a>
+                </div>
+            </div>
+        </div>
+        """
+        item_div_list += item_div
 
     return mark_safe(item_div_list)

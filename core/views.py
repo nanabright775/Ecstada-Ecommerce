@@ -9,8 +9,12 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from .forms import CheckoutForm, CouponForm, RefundForm
 from .models import Item, OrderItem, Order, BillingAddress, Payment, Coupon, Refund, Category
-from django.http import HttpResponseRedirect
-from django.shortcuts import render_to_response
+import requests
+from django.http import JsonResponse
+from .models import Item
+from paystackapi.transaction import Transaction
+from paystackapi.transaction import Transaction
+
 
 # Create your views here.
 import random
@@ -23,9 +27,46 @@ def create_ref_code():
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
 
 
+@login_required
+def payment_verification(request):
+    reference = request.GET.get('reference')
+    if reference:
+        url = f"https://api.paystack.co/transaction/verify/{reference}"
+        headers = {
+            "Authorization": "sk_test_81268c8c2f76186a2cea978bf19099c8b35eb522",#secrete key here
+        }
+        response = requests.get(url, headers=headers)
+        data = response.json()
+
+        if data['status'] == 'success':
+            # Payment was successful
+            payment = Payment()
+            payment.stripe_charge_id = reference  # Store reference as the ID
+            payment.user = request.user
+            payment.amount = data['data']['amount'] / 100  # Convert back to the original amount
+            payment.save()
+
+            # Mark order as paid
+            order = Order.objects.get(user=request.user, ordered=False)
+            order.ordered = True
+            order.payment = payment
+            order.ref_code = create_ref_code()
+            order.save()
+
+            messages.success(request, "Payment was successful")
+            return redirect("/")
+
+        else:
+            messages.error(request, "Payment verification failed")
+            return redirect("core:checkout")
+
+    else:
+        messages.error(request, "No reference found")
+        return redirect("core:checkout")
+
+
 class PaymentView(View):
     def get(self, *args, **kwargs):
-        # order
         order = Order.objects.get(user=self.request.user, ordered=False)
         if order.billing_address:
             context = {
@@ -34,75 +75,77 @@ class PaymentView(View):
             }
             return render(self.request, "payment.html", context)
         else:
-            messages.warning(
-                self.request, "u have not added a billing address")
+            messages.warning(self.request, "You have not added a billing address")
             return redirect("core:checkout")
 
     def post(self, *args, **kwargs):
         order = Order.objects.get(user=self.request.user, ordered=False)
         token = self.request.POST.get('stripeToken')
         amount = int(order.get_total() * 100)
+        
         try:
-            charge = stripe.Charge.create(
-                amount=amount,  # cents
-                currency="usd",
-                source=token
+            # Process payment with Paystack
+            response = Transaction.initialize(
+                reference=str(order.id),
+                amount=amount,
+                email=self.request.user.email,
+                callback_url="http://127.0.0.1:8000/payment-completed/"
             )
-            # create the payment
+            # handle successful response
             payment = Payment()
-            payment.stripe_charge_id = charge['id']
+            payment.stripe_charge_id = response['data']['reference']  # or however you capture this from Paystack
             payment.user = self.request.user
             payment.amount = order.get_total()
             payment.save()
 
-            # assign the payment to the order
             order.ordered = True
             order.payment = payment
-            # TODO : assign ref code
-            order.ref_code = create_ref_code()
+            order.ref_code = create_ref_code()  # Ensure this is defined
             order.save()
 
-            messages.success(self.request, "Order was successful")
-            return redirect("/")
-
-        except stripe.error.CardError as e:
-            # Since it's a decline, stripe.error.CardError will be caught
-            body = e.json_body
-            err = body.get('error', {})
-            messages.error(self.request, f"{err.get('message')}")
-            return redirect("/")
-
-        except stripe.error.RateLimitError as e:
-            # Too many requests made to the API too quickly
-            messages.error(self.request, "RateLimitError")
-            return redirect("/")
-
-        except stripe.error.InvalidRequestError as e:
-            # Invalid parameters were supplied to Stripe's API
-            messages.error(self.request, "Invalid parameters")
-            return redirect("/")
-
-        except stripe.error.AuthenticationError as e:
-            # Authentication with Stripe's API failed
-            # (maybe you changed API keys recently)
-            messages.error(self.request, "Not Authentication")
-            return redirect("/")
-
-        except stripe.error.APIConnectionError as e:
-            # Network communication with Stripe failed
-            messages.error(self.request, "Network Error")
-            return redirect("/")
-
-        except stripe.error.StripeError as e:
-            # Display a very generic error to the user, and maybe send
-            # yourself an email
-            messages.error(self.request, "Something went wrong")
+            messages.success(self.request, "Your order was successful")
             return redirect("/")
 
         except Exception as e:
-            # send an email to ourselves
-            messages.error(self.request, "Serious Error occured")
-            return redirect("/")
+            # Log the error, notify the user, etc.
+            messages.error(self.request, "An error occurred while processing your payment.")
+            return redirect("core:checkout")  # or wherever you want to redirect
+
+        # Always return something at the end of your views
+        return redirect("core:checkout")
+
+
+
+
+def paystack_callback(request):
+    reference = request.GET.get('reference')
+    response = Transaction.verify(reference=reference)
+
+    if response['status']:
+        payment = Payment()
+        payment.paystack_charge_id = response['data']['reference']
+        payment.user = request.user
+        payment.amount = response['data']['amount'] / 100  # Convert back to normal currency unit
+        payment.save()
+
+        # Update the order
+        order = Order.objects.get(user=request.user, ordered=False)
+        order.ordered = True
+        order.payment = payment
+        order.ref_code = reference
+        order.save()
+
+        messages.success(request, "Payment successful")
+        return redirect("/")
+    else:
+        messages.error(request, "Payment verification failed")
+        return redirect("/checkout/")
+
+
+
+
+
+
 
 
 class HomeView(ListView):
@@ -129,22 +172,28 @@ class ShopView(ListView):
     paginate_by = 6
     template_name = "shop.html"
 
+    
 
 class ItemDetailView(DetailView):
     model = Item
     template_name = "product-detail.html"
 
 
-# class CategoryView(DetailView):
-#     model = Category
-#     template_name = "category.html"
 
 class CategoryView(View):
     def get(self, *args, **kwargs):
         category = Category.objects.get(slug=self.kwargs['slug'])
-        item = Item.objects.filter(category=category, is_active=True)
+        item_query = Item.objects.filter(category=category, is_active=True)
+        
+        # Get the price range from the query parameters
+        lower = self.request.GET.get('lower')
+        upper = self.request.GET.get('upper')
+        
+        if lower and upper:
+            item_query = item_query.filter(price__gte=lower, price__lte=upper)
+        
         context = {
-            'object_list': item,
+            'object_list': item_query,
             'category_title': category,
             'category_description': category.description,
             'category_image': category.image
@@ -210,25 +259,7 @@ class CheckoutView(View):
             return redirect("core:order-summary")
 
 
-# def home(request):
-#     context = {
-#         'items': Item.objects.all()
-#     }
-#     return render(request, "index.html", context)
-#
-#
-# def products(request):
-#     context = {
-#         'items': Item.objects.all()
-#     }
-#     return render(request, "product-detail.html", context)
-#
-#
-# def shop(request):
-#     context = {
-#         'items': Item.objects.all()
-#     }
-#     return render(request, "shop.html", context)
+
 
 
 @login_required
@@ -345,7 +376,7 @@ class AddCouponView(View):
                 return redirect("core:checkout")
 
             except ObjectDoesNotExist:
-                messages.info(request, "You do not have an active order")
+                messages.info(requests, "You do not have an active order")
                 return redirect("core:checkout")
 
 
@@ -382,3 +413,29 @@ class RequestRefundView(View):
             except ObjectDoesNotExist:
                 messages.info(self.request, "This order does not exist")
                 return redirect("core:request-refund")
+
+
+
+
+def filter_products(request):
+    try:
+        lower = float(request.GET.get('lower', 0))
+        upper = float(request.GET.get('upper', 10000))
+    except ValueError:
+        lower = 0
+        upper = 10000
+    filtered_items = Item.objects.filter(price__gte=lower, price__lte=upper, is_active=True)
+
+    print(filtered_items)
+    print(f'this is lower:{lower}')
+    print(f'this is upper: {upper}')
+    products = []
+    for item in filtered_items:
+        products.append({
+            'title': item.title,
+            'price': item.price,
+            'image_url': item.image.url,
+            'slug': item.slug
+        })
+
+    return JsonResponse({'products': products})

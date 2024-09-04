@@ -42,9 +42,8 @@
  
     <div class="container">
   <div class="py-5 text-center">
-    <img class="d-block mx-auto mb-4" src="/docs/4.3/assets/brand/bootstrap-solid.svg" alt="" width="72" height="72">
-    <h2>Checkout form</h2>
-    <p class="lead">Below is an example form built entirely with Bootstrap’s form controls. Each required form group has a validation state that can be triggered by attempting to submit the form without completing it.</p>
+    <h2 class="m-4">Checkout</h2>
+    <p class="lead"> Exclusive Offer: Enjoy free delivery on all orders over ₵1000! Shop more and save on shipping—this offer is our way of saying thank you for choosing us.</p>
   </div>
 
   <div class="row">
@@ -67,13 +66,13 @@
 
         <div class="row">
           <div class="col-md-5 mb-3">
-            <label for="country">Country</label>
+            <label for="country">City</label>
            		{{ form.country }}
             <div class="invalid-feedback">
               Please select a valid country.
             </div>
           </div>
-          <div class="col-md-4 mb-3">
+          {% comment %} <div class="col-md-4 mb-3">
             <label for="state">City</label>
             <select class="custom-select d-block w-100" id="state" required>
               <option value="">Choose...</option>
@@ -84,12 +83,12 @@
             <div class="invalid-feedback">
               Please provide a valid state.
             </div>
-          </div>
+          </div> {% endcomment %}
           <div class="col-md-3 mb-3">
-            <label for="zip">Zip</label>
+            <label for="zip">Tel</label>
             {{ form.zip }}
             <div class="invalid-feedback">
-              Zip code required.
+              Telephone Number required.
             </div>
           </div>
         </div>
@@ -109,16 +108,15 @@
         <h4 class="mb-3">Payment</h4>
 
         <div class="d-block my-3">
-        	{% for value, name in form.fields.payment_option.choices %}
           <div class="custom-control custom-radio">
-            <input id="{{ name }}" name="payment_option" value="{{ value }}" type="radio" class="custom-control-input"  required>
-            <label class="custom-control-label" for="{{name}}">{{ name }}</label>
+              <input id="paystack" name="payment_option" value="P" type="radio" class="custom-control-input" required>
+              <label class="custom-control-label" for="paystack">Paystack</label>
           </div>
-          {% endfor %}
-        </div>
+      </div>
         
         <hr class="mb-4">
-        <button class="btn btn-primary btn-lg btn-block" type="submit">Continue to checkout</button>
+        <button class="btn btn-primary btn-lg btn-block mb-2" type="button" onclick="payWithPaystack()">Pay Now</button>
+
       </form>
     </div>
 
@@ -126,13 +124,33 @@
 
   </div>
 
-  <footer class="my-5 pt-5 text-muted text-center text-small">
-    <p class="mb-1">&copy; 2017-2019 Company Name</p>
-    <ul class="list-inline">
-      <li class="list-inline-item"><a href="#">Privacy</a></li>
-      <li class="list-inline-item"><a href="#">Terms</a></li>
-      <li class="list-inline-item"><a href="#">Support</a></li>
-    </ul>
-  </footer>
+  <div class="my-5 pt-5 text-muted text-center text-small">
+    
+  </div>
 </div>
+
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+    function payWithPaystack() {
+        var handler = PaystackPop.setup({
+            key: 'pk_test_b35f442b2a7d60664b0c273566df4fb4f22eb2d0', // Replace with your public key
+            email: '{{ request.user.email }}',
+            amount: {{ order.get_total|floatformat:2 }} * 100, // Paystack expects amount in kobo
+            currency: "GHS",
+            ref: ''+Math.floor((Math.random() * 1000000000) + 1), // Replace with a reference you generate
+            callback: function(response){
+                // After successful payment, redirect to a view to finalize the order
+                window.location.href = "{% url 'core:payment-verification' %}?reference=" + response.reference;
+            },
+            onClose: function(){
+                alert('Transaction was not completed, window closed.');
+            }
+        });
+        handler.openIframe();
+    }
+</script>
+
+
+
 {% endblock content %}

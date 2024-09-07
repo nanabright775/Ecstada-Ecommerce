@@ -1,0 +1,43 @@
+
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load account socialaccount %}
+{% load crispy_forms_tags %}
+
+{% comment %} {% block head_title %}{% trans "Sign In" %}{% endblock %} {% endcomment %}
+
+{% block content %}
+
+<style>
+    form{
+        {% comment %} width: 100%; {% endcomment %}
+        max-width: 500px;
+        margin: 50px auto;
+        padding: 20px;
+        box-shadow:  5px;
+        border-radius: 10px;
+    }
+    form p{
+        text-align: center;
+    }
+
+    form h3{
+        text-align: center
+    }
+</style>
+
+
+<form action="" method='POST'>
+    {% csrf_token %}
+    <h3><strong>Verify Email</strong></h3>
+    <div class="mb-3">
+        <label class="form-label">OTP</label>
+        <input class="form-control" name="otp_code" placeholder="Enter OTP">
+    </div>
+    <button class="btn btn-primary" style="width:100%">Activate Account</button>
+    <p>Need a new OTP? <a href="{% url 'core:resendotp' %}">Resend OTP</a></p>
+</form>
+
+{% endblock content %}
+    

@@ -34,12 +34,15 @@
                     </td>
                     
                       <td>
-                          {% if order_item.item.discount_price %}
-                              GHc{{ order_item.get_amount_saved  }}
-                              <span class="badge badge-primary"> Saving Ghc{{ order_item.get_total_discount_item_price}}</span>
-                          {% else %}
-                              Ghc{{ order_item.get_total_item_price }}
-                          {% endif %}
+                        {% if order_item.item.discount_price %}
+                        <!-- Show the amount saved if there's a discount -->
+                        GHc{{ order_item.get_amount_saved }}
+                        <span class="badge badge-primary">Saving GHc{{ order_item.get_total_discount_item_price }}</span>
+                    {% else %}
+                        <!-- Show the regular total price if there's no discount -->
+                        GHc{{ order_item.get_total_item_price }}
+                    {% endif %}
+                    
                           <a style="color: red" href="{% url 'core:remove-from-cart' order_item.item.slug %}" class="btn  btn-sm float-right"><i class="fas fa-trash"></i></a>
                       </td>
                   </tr>

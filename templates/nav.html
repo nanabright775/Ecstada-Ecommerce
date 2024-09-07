@@ -17,6 +17,18 @@
     }
 
 
+    
+   
+    
+    /* For screens smaller than 576px (Bootstrap's extra-small breakpoint) */
+    @media (max-width: 576px) {
+        .logo-img {
+            width: 100px;  /* Further increase the size for smaller phones */
+            height: 200px;
+        }
+    }
+    
+
  {% comment %}
     .topbar a:hover {
         color: #ddd;
@@ -62,14 +74,15 @@
 
             <div class="topbar-child2">
                 <span class="topbar-email">
-                    <a href="mailto:nanabrightatsiatorme@gmail.com" style="color: white;">nanabrightatsiatorme@gmail.com</a>
+                    <a href="mailto:nanabrightatsiatorme@gmail.com" style="color: white;">ecstada@gmail.com</a>
                 </span>
-                <div class="topbar-language rs1-select2">
-                    <select class="selection-1" name="time">
-                        <option>USD</option>
-                        <option>EUR</option>
-                    </select>
-                </div>
+                {% if user.is_authenticated %}
+                <span class="flex items-center text-sm bg-gray-800 text-white rounded-full py-2 px-3 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600">
+                    {{ user.username }}
+                </span>
+
+                {% endif %}
+                
             </div>
         </div>
 
@@ -94,14 +107,21 @@
                                     <span class="header-icons-noti">{{ request.user|cart_item_count }}</span>
                                 </a>
                             </div>
+                           
                         </li>
-                        <li><a href="{% url 'account_logout' %}">Logout</a></li>
-                        {% else %}
                         <li>
-                            <a href="#">Login</a>
+                            
+                            <a href="{% url 'core:my-orders' %}">
+                                Ordered
+                            </a>
+                        </li>
+                        <li><a href="{% url 'core:logout' %}">Logout</a></li>
+                        {% else %}
+                        <li >
+                            <a >Login</a>
                             <ul class="sub_menu">
-                                <li><a href="{% url 'account_login' %}">Login</a></li>
-                                <li><a href="{% url 'account_signup' %}">SignUp</a></li>
+                                <li><a href="{% url 'core:signin' %}">Login</a></li>
+                                <li><a href="{% url 'core:register' %}">SignUp</a></li>
                             </ul>
                         </li>
                         {% endif %}
@@ -114,8 +134,11 @@
     <!-- Header Mobile -->
     <div class="wrap_header_mobile">
         <a href="/" class="logo-mobile">
-            <img src="{% static 'images/icons/logo.png' %}" alt="IMG-LOGO">
+            <img src="{% static 'images/icons/ecstadaaa.png' %}" alt="IMG-LOGO" class="img-fluid logo-img">
+        
+        
         </a>
+        
 
         <div class="btn-show-menu">
             <div class="header-icons-mobile">
@@ -164,25 +187,20 @@
         <nav class="side-menu">
             <ul class="main-menu">
                 <li class="item-topbar-mobile p-l-20 p-t-8 p-b-8">
-                    <span class="topbar-child1">Free shipping for standard order over $100</span>
+                    <span class="topbar-child1">Free delivery for standard order over ₵1000</span>
                 </li>
                 <li class="item-topbar-mobile p-l-20 p-t-8 p-b-8">
                     <div class="topbar-child2-mobile">
-                        <span class="topbar-email">fashe@example.com</span>
-                        <div class="topbar-language rs1-select2">
-                            <select class="selection-1" name="time">
-                                <option>USD</option>
-                                <option>EUR</option>
-                            </select>
-                        </div>
+                        <span class="topbar-email">ecstada@gmail.com</span>
+                        
                     </div>
                 </li>
                 <li class="item-topbar-mobile p-l-10">
                     <div class="topbar-social-mobile">
-                        <a href="#" class="topbar-social-item fa fa-facebook"></a>
-                        <a href="#" class="topbar-social-item fa fa-instagram"></a>
-                        <a href="#" class="topbar-social-item fa fa-pinterest-p"></a>
-                        <a href="#" class="topbar-social-item fa fa-youtube-play"></a>
+                        <a href="#" class="topbar-social-item fab fa-facebook"></a>
+                        <a href="#" class="topbar-social-item fab fa-instagram"></a>
+                        <a href="#" class="topbar-social-item fab fa-pinterest-p"></a>
+                        <a href="#" class="topbar-social-item fab fa-youtube"></a>
                     </div>
                 </li>
                 <li class="item-menu-mobile"><a href="/">Home</a></li>
@@ -192,13 +210,18 @@
                 <li class="item-menu-mobile">
                     <a href="{% url 'core:order-summary' %}">Cart<span class="badge badge-dark">{{ request.user|cart_item_count }}</span></a>
                 </li>
-                <li class="item-menu-mobile"><a href="{% url 'account_logout' %}">Logout</a></li>
+                <li class="item-menu-mobile">
+                    <a href="{% url 'core:my-orders' %}">
+                        Ordered
+                    </a>
+                </li>
+                <li class="item-menu-mobile"><a href="{% url 'core:logout' %}">Logout</a></li>
                 {% else %}
                 <li class="item-menu-mobile">
-                    <a href="#">Login</a>
+                    <a>Login</a>
                     <ul class="sub-menu">
-                        <li><a href="{% url 'account_login' %}">Login</a></li>
-                        <li><a href="{% url 'account_signup' %}">SignUp</a></li>
+                        <li class="item-menu-mobile"><a class="text-white" href="{% url 'core:signin' %}">Login</a></li>
+                        <li class="item-menu-mobile"><a class="text-white" href="{% url 'core:register' %}">SignUp</a></li>
                     </ul>
                     <i class="arrow-main-menu fa fa-angle-right" aria-hidden="true"></i>
                 </li>

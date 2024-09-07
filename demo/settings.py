@@ -20,8 +20,10 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'crispy_forms',
+    'crispy_bootstrap4',
     'django_countries',
-    'core'
+    'core',
+    # 'core.apps.OtpAppConfig',
 ]
 
 MIDDLEWARE = [
@@ -94,6 +96,7 @@ AUTHENTICATION_BACKENDS = (
 
 SITE_ID = 1
 LOGIN_REDIRECT_URL = '/'
+ 
 
 # Provider specific settings
 SOCIALACCOUNT_PROVIDERS = {
@@ -109,9 +112,22 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-# CRISPY FORM
 
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
+# CRISPY FORM
+CRISPY_TEMPLATE_PACK = 'bootstrap4' 
 
 STRIPE_PUBLIC_KEY = 'pk_test_lX3r6OMjOU2yzFsNSHq6belT00EY82kZmH'
 STRIPE_SECRET_KEY = 'sk_test_tn0CTDaIJHUJyAqhsf39cfsC00LNjsqDnb'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'developeregyakofi@gmail.com'
+EMAIL_HOST_PASSWORD = 'cbijmkvlpgisccaw'
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
+
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AUTH_USER_MODEL = 'core.CustomUser'

@@ -5,26 +5,138 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, DetailView, View
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.utils import timezone
-from .forms import CheckoutForm, CouponForm, RefundForm
+from .forms import CouponForm, RefundForm, BillingAddressForm, CheckoutForm
 from .models import Item, OrderItem, Order, BillingAddress, Payment, Coupon, Refund, Category
 import requests
 from django.http import JsonResponse
 from .models import Item
-from paystackapi.transaction import Transaction
-from paystackapi.transaction import Transaction
-
-
-# Create your views here.
 import random
 import string
 import stripe
+from .forms import RegisterForm
+from .models import OtpToken
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from django.contrib.auth import authenticate, login, logout
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 def create_ref_code():
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
+
+
+def signin(request):
+    if request.method == 'POST':
+        email = request.POST['username']  # This should be email, not username
+        password = request.POST['password']
+        user = authenticate(request, email=email, password=password)
+        
+        if user is not None:    
+            login(request, user)
+            messages.success(request, f"Hi {request.user.username}, you are now logged-in")
+            return redirect("/")  # Render the homepage directly
+        
+        else:
+            messages.warning(request, "Invalid credentials")
+            return render(request, "account/login.html")  # Show login page with warning
+            # return redirect("signin/")
+        
+    return render(request, "account/login.html")
+
+
+def verify_email(request, username):
+    user = get_user_model().objects.get(username=username)
+    user_otp = OtpToken.objects.filter(user=user).last()
+    
+    
+    if request.method == 'POST':
+        # valid token
+        if user_otp.otp_code == request.POST['otp_code']:
+            
+            # checking for expired token
+            if user_otp.otp_expires_at > timezone.now():
+                user.is_active=True
+                user.save()
+                messages.success(request, "Account activated successfully!! Visit the Login page and Login.")
+                return redirect("/")
+            
+            # expired token
+            else:
+                messages.warning(request, "The OTP has expired, get a new OTP!")
+            return redirect(f"/verifyemail/{user.username}/", username=user.username)
+        
+        
+        # invalid otp code
+        else:
+            messages.warning(request, "Invalid OTP entered, enter a valid OTP!")
+            return redirect(f"/verifyemail/{user.username}/", username=user.username)
+        
+    context = {}
+    return render(request, "account/verify_token.html", context)
+
+
+
+def generate_otp():
+    """Generate a random 6-digit OTP."""
+    return str(random.randint(100000, 999999))
+
+
+def resend_otp(request):
+    if request.method == 'POST':
+        user_email = request.POST["otp_email"]
+        
+        if get_user_model().objects.filter(email=user_email).exists():
+            user = get_user_model().objects.get(email=user_email)
+            otp = OtpToken.objects.create(user=user, otp_expires_at=timezone.now() + timezone.timedelta(minutes=5))
+            
+            
+            # email variables
+            subject="Email Verification"
+            message = f"""
+                                Hi {user.username}, here is your OTP {otp.otp_code} 
+                                it expires in 5 minute, use the url below to redirect back to the website
+                                http://127.0.0.1:8000/verifyemail/{user.username}
+                                
+                                """
+            sender = "clintonmatics@gmail.com"
+            receiver = [user.email, ]
+        
+        
+            # send email
+            send_mail(
+                    subject,
+                    message,
+                    sender,
+                    receiver,
+                    fail_silently=False,
+                )
+            
+            messages.success(request, "A new OTP has been sent to your email-address")
+            return redirect(f"/verifyemail/{user.username}/", username=user.username)
+
+        else:
+            messages.warning(request, "This email dosen't exist in the database")
+            return redirect("resend-otp/")
+        
+           
+    context = {}
+    return render(request, "account/resend_otp.html", context)
+
+
+def signup(request):
+    form = RegisterForm()
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Account created successfully! An OTP was sent to your Email")
+            # return render(request, "account/verify_token.html", username=form.cleaned_data['email'])
+            return render(request, "account/verify_token.html")
+
+    context = {"form": form}
+    return render(request, "account/signup.html", context)
 
 
 @login_required
@@ -33,119 +145,47 @@ def payment_verification(request):
     if reference:
         url = f"https://api.paystack.co/transaction/verify/{reference}"
         headers = {
-            "Authorization": "sk_test_81268c8c2f76186a2cea978bf19099c8b35eb522",#secrete key here
+            "Authorization": "Bearer sk_test_81268c8c2f76186a2cea978bf19099c8b35eb522",  # secret key
         }
         response = requests.get(url, headers=headers)
         data = response.json()
 
-        if data['status'] == 'success':
-            # Payment was successful
-            payment = Payment()
-            payment.stripe_charge_id = reference  # Store reference as the ID
-            payment.user = request.user
-            payment.amount = data['data']['amount'] / 100  # Convert back to the original amount
-            payment.save()
+        if data.get('status') and data['data'].get('status') == 'success':
+            try:
+                payment_data = data['data']
+                # Payment was successful
+                payment = Payment()
+                payment.paystack_charge_id = reference  # Store reference as the ID
+                payment.user = request.user
+                payment.amount = payment_data['amount'] / 100  # Convert from kobo to GHS
+                payment.save()
 
-            # Mark order as paid
-            order = Order.objects.get(user=request.user, ordered=False)
-            order.ordered = True
-            order.payment = payment
-            order.ref_code = create_ref_code()
-            order.save()
+                # Mark order as paid
+                order = Order.objects.get(user=request.user, ordered=False)
+                order.ordered = True
+                order.payment = payment
+                order.ref_code = create_ref_code()
+                order.save()
 
-            messages.success(request, "Payment was successful")
-            return redirect("/")
-
+                messages.success(request, "Payment was successful")
+                return render(request, "thankyou.html")#to redirect to a page thanking the buyer
+            except Exception as e:
+                messages.error(request, "Error processing your payment.")
+                return redirect("core:checkout")
         else:
             messages.error(request, "Payment verification failed")
             return redirect("core:checkout")
-
     else:
         messages.error(request, "No reference found")
         return redirect("core:checkout")
 
 
-class PaymentView(View):
-    def get(self, *args, **kwargs):
-        order = Order.objects.get(user=self.request.user, ordered=False)
-        if order.billing_address:
-            context = {
-                'order': order,
-                'DISPLAY_COUPON_FORM': False
-            }
-            return render(self.request, "payment.html", context)
-        else:
-            messages.warning(self.request, "You have not added a billing address")
-            return redirect("core:checkout")
-
-    def post(self, *args, **kwargs):
-        order = Order.objects.get(user=self.request.user, ordered=False)
-        token = self.request.POST.get('stripeToken')
-        amount = int(order.get_total() * 100)
-        
-        try:
-            # Process payment with Paystack
-            response = Transaction.initialize(
-                reference=str(order.id),
-                amount=amount,
-                email=self.request.user.email,
-                callback_url="http://127.0.0.1:8000/payment-completed/"
-            )
-            # handle successful response
-            payment = Payment()
-            payment.stripe_charge_id = response['data']['reference']  # or however you capture this from Paystack
-            payment.user = self.request.user
-            payment.amount = order.get_total()
-            payment.save()
-
-            order.ordered = True
-            order.payment = payment
-            order.ref_code = create_ref_code()  # Ensure this is defined
-            order.save()
-
-            messages.success(self.request, "Your order was successful")
-            return redirect("/")
-
-        except Exception as e:
-            # Log the error, notify the user, etc.
-            messages.error(self.request, "An error occurred while processing your payment.")
-            return redirect("core:checkout")  # or wherever you want to redirect
-
-        # Always return something at the end of your views
-        return redirect("core:checkout")
 
 
-
-
-def paystack_callback(request):
-    reference = request.GET.get('reference')
-    response = Transaction.verify(reference=reference)
-
-    if response['status']:
-        payment = Payment()
-        payment.paystack_charge_id = response['data']['reference']
-        payment.user = request.user
-        payment.amount = response['data']['amount'] / 100  # Convert back to normal currency unit
-        payment.save()
-
-        # Update the order
-        order = Order.objects.get(user=request.user, ordered=False)
-        order.ordered = True
-        order.payment = payment
-        order.ref_code = reference
-        order.save()
-
-        messages.success(request, "Payment successful")
-        return redirect("/")
-    else:
-        messages.error(request, "Payment verification failed")
-        return redirect("/checkout/")
-
-
-
-
-
-
+def logout_view(request):
+    logout(request)
+    messages.success(request, "You have been logged out successfully.")
+    return redirect("/")  # Redirect to the sign-in page or any other page
 
 
 class HomeView(ListView):
@@ -167,17 +207,34 @@ class OrderSummaryView(LoginRequiredMixin, View):
             return redirect("/")
 
 
+#To display the users paid item
+class MyOrderedSummaryView(LoginRequiredMixin, View):
+    def get(self, *args, **kwargs):
+        try:
+            order = Order.objects.filter(user=self.request.user, ordered=True).last()
+            if order:
+                context = {
+                    'object': order
+                }
+                return render(self.request, 'my_order_summary.html', context)
+            else:
+                messages.error(self.request, "You do not have any completed orders.")
+                return redirect("core:shop") 
+        except ObjectDoesNotExist:
+            messages.error(self.request, "You do not have an active order")
+            return redirect("core:shop")  # Redirect to a valid view name
+
+
+
 class ShopView(ListView):
     model = Item
     paginate_by = 6
     template_name = "shop.html"
 
     
-
 class ItemDetailView(DetailView):
     model = Item
     template_name = "product-detail.html"
-
 
 
 class CategoryView(View):
@@ -201,11 +258,13 @@ class CategoryView(View):
         return render(self.request, "category.html", context)
 
 
+
+
 class CheckoutView(View):
     def get(self, *args, **kwargs):
         try:
             order = Order.objects.get(user=self.request.user, ordered=False)
-            form = CheckoutForm()
+            form = BillingAddressForm()
             context = {
                 'form': form,
                 'couponform': CouponForm(),
@@ -219,46 +278,39 @@ class CheckoutView(View):
             return redirect("core:checkout")
 
     def post(self, *args, **kwargs):
-        form = CheckoutForm(self.request.POST or None)
+        form = BillingAddressForm(self.request.POST or None)
         try:
             order = Order.objects.get(user=self.request.user, ordered=False)
-            print(self.request.POST)
             if form.is_valid():
                 street_address = form.cleaned_data.get('street_address')
                 apartment_address = form.cleaned_data.get('apartment_address')
                 country = form.cleaned_data.get('country')
-                zip = form.cleaned_data.get('zip')
-                # add functionality for these fields
-                # same_shipping_address = form.cleaned_data.get(
-                #     'same_shipping_address')
-                # save_info = form.cleaned_data.get('save_info')
-                payment_option = form.cleaned_data.get('payment_option')
+                zip_code = form.cleaned_data.get('zip')
+
+                # Saving billing address
                 billing_address = BillingAddress(
                     user=self.request.user,
                     street_address=street_address,
                     apartment_address=apartment_address,
                     country=country,
-                    zip=zip,
-                    address_type='B'
+                    zip=zip_code
                 )
                 billing_address.save()
+
+                # Link the billing address to the order
                 order.billing_address = billing_address
                 order.save()
 
-                # add redirect to the selected payment option
-                if payment_option == 'S':
-                    return redirect('core:payment', payment_option='stripe')
-                elif payment_option == 'P':
-                    return redirect('core:payment', payment_option='paypal')
-                else:
-                    messages.warning(
-                        self.request, "Invalid payment option select")
-                    return redirect('core:checkout')
+                # Return a JSON response indicating success
+                return JsonResponse({"success": True})
+
+            else:
+                # Form is invalid, return error message
+                return JsonResponse({"success": False, "error": "Invalid form data"})
+
         except ObjectDoesNotExist:
             messages.error(self.request, "You do not have an active order")
-            return redirect("core:order-summary")
-
-
+            return JsonResponse({"success": False, "error": "No active order"})
 
 
 
@@ -276,7 +328,7 @@ def add_to_cart(request, slug):
         if order.items.filter(item__slug=item.slug).exists():
             order_item.quantity += 1
             order_item.save()
-            messages.info(request, "Item qty was updated.")
+            messages.info(request, "Item quantity was updated.")
             return redirect("core:order-summary")
         else:
             order.items.add(order_item)
@@ -289,6 +341,7 @@ def add_to_cart(request, slug):
         order.items.add(order_item)
         messages.info(request, "Item was added to your cart.")
     return redirect("core:order-summary")
+
 
 
 @login_required
@@ -320,6 +373,7 @@ def remove_from_cart(request, slug):
     return redirect("core:product", slug=slug)
 
 
+
 @login_required
 def remove_single_item_from_cart(request, slug):
     item = get_object_or_404(Item, slug=slug)
@@ -340,7 +394,7 @@ def remove_single_item_from_cart(request, slug):
                 order_item.save()
             else:
                 order.items.remove(order_item)
-            messages.info(request, "This item qty was updated.")
+            messages.info(request, "This item quantity was updated.")
             return redirect("core:order-summary")
         else:
             # add a message saying the user dosent have an order
@@ -348,7 +402,7 @@ def remove_single_item_from_cart(request, slug):
             return redirect("core:product", slug=slug)
     else:
         # add a message saying the user dosent have an order
-        messages.info(request, "u don't have an active order.")
+        messages.info(request, "you don't have an active order.")
         return redirect("core:product", slug=slug)
     return redirect("core:product", slug=slug)
 
@@ -416,7 +470,6 @@ class RequestRefundView(View):
 
 
 
-
 def filter_products(request):
     try:
         lower = float(request.GET.get('lower', 0))
@@ -439,3 +492,31 @@ def filter_products(request):
         })
 
     return JsonResponse({'products': products})
+
+
+
+@login_required
+def my_orders(request):
+    # Fetch the orders for the logged-in user
+    orders = Order.objects.filter(user=request.user, ordered=True).prefetch_related('items', 'billing_address')
+
+    context = {
+        'orders': orders
+    }
+    return render(request, 'my_orders.html', context)
+
+
+
+@login_required
+def delete_order(request, order_id):
+    # Fetch the order
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    if request.method == "POST":
+        order.delete()
+        messages.success(request, "Order deleted successfully.")
+        return redirect('core:my-orders')
+
+
+def thank_you_view(request):
+    return render(request, 'thankyou.html')

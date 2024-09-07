@@ -1,0 +1,122 @@
+{% extends 'base.html' %} 
+{% load static %} 
+{% block content %}
+
+<div class="container">
+    <h2 class="m-4">These are your Orders, {{ user.username }}</h2>
+
+    {% if orders %}
+    <div class="row">
+        {% for order in orders %}
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Order Reference: {{ order.ref_code }}</h4>
+                    <p>Ordered Date: {{ order.ordered_date }}</p>
+                </div>
+                <div class="card-body">
+                    <h5>Items in this order:</h5>
+                    <ul style="list-style: none; padding-left: 0; display: flex; flex-wrap: wrap;">
+                        {% for order_item in order.items.all %}
+                        <li style="margin-right: 40px; text-align: center;">
+                            <p>{{ order_item.quantity }} x {{ order_item.item.title }} - ${{ order_item.get_final_price }}</p>
+                            <img src="{{ order_item.item.image.url }}" style="object-fit: cover; width: 130px; max-width: 100%; height: 130px;">
+                        </li>
+                        {% endfor %}
+                    </ul>
+
+                    <h5>Billing Address:</h5>
+                    <p>{{ order.billing_address.street_address }}<br>
+                    {{ order.billing_address.apartment_address }}<br>
+                    {{ order.billing_address.country.name }}<br>
+                    Zip: {{ order.billing_address.zip }}</p>
+
+                    <h5>Total Amount Paid: ${{ order.get_total }}</h5>
+
+                    {% if order.being_delivered %}
+                    <p>Status: Being Delivered</p>
+                    {% elif order.received %}
+                    <p>Status: Order Received</p>
+                    {% else %}
+                    <p>Status: Processing</p>
+                    {% endif %}
+
+                    <!-- Add delete button -->
+<!-- Delete button triggers the modal -->
+<button type="button" class="btn btn-danger mt-2" data-toggle="modal" data-target="#deleteModal{{ order.id }}">
+    Delete Order
+</button>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal{{ order.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ order.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel{{ order.id }}">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this order?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+
+                <!-- Actual delete form (submits when confirmed) -->
+                <form method="POST" action="{% url 'core:delete-order' order.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Confirm</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary mt-2" data-toggle="modal" data-target="#exampleModal">
+    Request Refund
+  </button>
+  
+  <!-- Modal -->
+  <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          ...
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>You have no orders.</p>
+    {% endif %}
+</div>
+
+
+<!-- Bootstrap CSS -->
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Bootstrap JS and Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.min.js"></script>
+
+{% endblock %}

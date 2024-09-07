@@ -1,11 +1,11 @@
 from django import forms
 from django_countries.fields import CountryField
 from django_countries.widgets import CountrySelectWidget
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import get_user_model 
+from .models import BillingAddress
 
-PAYMENT_CHOICES = (
-    ('S', 'Stripe'),
-    ('P', 'PayPal')
-)
 
 
 class CheckoutForm(forms.Form):
@@ -26,8 +26,6 @@ class CheckoutForm(forms.Form):
     }))
     same_shipping_address = forms.BooleanField(required=False)
     save_info = forms.BooleanField(required=False)
-    payment_option = forms.ChoiceField(
-        widget=forms.RadioSelect, choices=PAYMENT_CHOICES)
 
 
 class CouponForm(forms.Form):
@@ -43,3 +41,21 @@ class RefundForm(forms.Form):
         'rows': 4
     }))
     email = forms.EmailField()
+
+
+
+class RegisterForm(UserCreationForm):
+    email=forms.CharField(widget=forms.EmailInput(attrs={"placeholder": "Enter email-address", "class": "form-control"}))
+    username=forms.CharField(widget=forms.TextInput(attrs={"placeholder": "Enter email-username", "class": "form-control"}))
+    password1=forms.CharField(label="Password", widget=forms.PasswordInput(attrs={"placeholder": "Enter password", "class": "form-control"}))
+    password2=forms.CharField(label="Confirm Password", widget=forms.PasswordInput(attrs={"placeholder": "Confirm password", "class": "form-control"}))
+    
+    class Meta:
+        model = get_user_model()
+        fields = ["email", "username", "password1", "password2"]
+
+
+class BillingAddressForm(forms.ModelForm):
+    class Meta:
+        model = BillingAddress
+        fields = ['street_address', 'apartment_address', 'country', 'zip']

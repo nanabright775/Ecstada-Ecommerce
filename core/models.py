@@ -3,6 +3,10 @@ from django.db import models
 from django.db.models import Sum
 from django.shortcuts import reverse
 from django_countries.fields import CountryField
+from django.contrib.auth.models import AbstractUser
+import secrets
+
+
 
 # Create your models here.
 CATEGORY_CHOICES = (
@@ -22,6 +26,28 @@ ADDRESS_CHOICES = (
     ('B', 'Billing'),
     ('S', 'Shipping'),
 )
+
+
+
+class CustomUser(AbstractUser):
+    email = models.EmailField(unique=True)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["username"]
+
+    def __str__(self):
+        return self.email
+
+
+class OtpToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="otps")
+    otp_code = models.CharField(max_length=6, default=secrets.token_hex(3))
+    tp_created_at = models.DateTimeField(auto_now_add=True)
+    otp_expires_at = models.DateTimeField(blank=True, null=True)
+    
+    
+    def __str__(self):
+        return self.user.username
 
 
 class Slide(models.Model):
@@ -99,15 +125,21 @@ class OrderItem(models.Model):
         return self.quantity * self.item.price
 
     def get_total_discount_item_price(self):
-        return self.quantity * self.item.discount_price
-
+        if self.item.discount_price:
+            return self.quantity * self.item.discount_price
+        return 0  
+    
     def get_amount_saved(self):
-        return self.get_total_item_price() - self.get_total_discount_item_price()
+        if self.item.discount_price:
+            return self.get_total_item_price() - self.get_total_discount_item_price()
+        return 0
 
     def get_final_price(self):
         if self.item.discount_price:
-            return self.get_total_discount_item_price()
+            # return self.get_total_discount_item_price()
+            return self.get_amount_saved()
         return self.get_total_item_price()
+
 
 
 class Order(models.Model):
@@ -151,23 +183,19 @@ class Order(models.Model):
         if self.coupon:
             total -= self.coupon.amount
         return total
+    
 
 
 class BillingAddress(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     street_address = models.CharField(max_length=100)
-    apartment_address = models.CharField(max_length=100, null=True)
-    country = CountryField(multiple=False, null=True)
-    zip = models.CharField(max_length=100)
-    address_type = models.CharField(max_length=1, choices=ADDRESS_CHOICES)
-    default = models.BooleanField(default=False)
+    apartment_address = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=50)
+    zip = models.CharField(max_length=10)
 
     def __str__(self):
-        return self.user.username
+        return f'{self.user.username} - {self.street_address}'
 
-    class Meta:
-        verbose_name_plural = 'BillingAddresses'
 
 
 class Payment(models.Model):
@@ -175,6 +203,7 @@ class Payment(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.SET_NULL, blank=True, null=True)
     amount = models.FloatField()
+    # verified = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

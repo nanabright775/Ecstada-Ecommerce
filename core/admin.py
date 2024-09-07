@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Item, OrderItem, Order, Payment, Coupon, Refund, BillingAddress, Category, Slide
+from .models import Item, OrderItem, Order, Payment, Coupon, Refund, BillingAddress, Category, Slide, CustomUser
 
 
 # Register your models here.
@@ -52,10 +52,8 @@ class AddressAdmin(admin.ModelAdmin):
         'apartment_address',
         'country',
         'zip',
-        'address_type',
-        'default'
     ]
-    list_filter = ['default', 'address_type', 'country']
+    list_filter = ['country']
     search_fields = ['user', 'street_address', 'apartment_address', 'zip']
 
 
@@ -95,5 +93,6 @@ admin.site.register(OrderItem)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Payment)
 admin.site.register(Coupon)
+admin.site.register(CustomUser)
 admin.site.register(Refund)
 admin.site.register(BillingAddress, AddressAdmin)

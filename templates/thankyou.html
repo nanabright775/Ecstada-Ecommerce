@@ -1,0 +1,31 @@
+{% extends 'base.html' %} 
+{% load static %} 
+
+{% block content %}
+
+    <div class="container mt-5 ">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card text-center shadow mb-8">
+                    <div class="card-body">
+                        <h1 class="display-4 text-success">Thank You!</h1>
+                        <p class="lead">Your purchase was successful.</p>
+                        <p class="mb-4">Your delivery is on its way! You’ll receive an update as soon as your order is shipped.</p>
+
+                        <div class="mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" fill="currentColor" class="bi bi-check-circle-fill text-success" viewBox="0 0 16 16">
+                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM6.93 10.56L4.374 8l-.708.707L6.93 11.97l6.364-6.364-.707-.707L6.93 10.56z"/>
+                            </svg>
+                        </div>
+
+                        <a href="/" class="btn btn-primary btn-lg">Return to Home</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<br>
+<br>
+<br>
+ 
+    {% endblock content %}

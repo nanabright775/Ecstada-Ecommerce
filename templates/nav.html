@@ -29,27 +29,7 @@
     }
     
 
- {% comment %}
-    .topbar a:hover {
-        color: #ddd;
-    }
 
-    .header1 .wrap_header, .wrap_header_mobile, .side-menu {
-        background-color: #007bff;
-    }
-
-   
-	.main_menu > li > a {
-		color: white;
-	}
-	
-	.main_menu > li > a:hover {
-		color: #ddd; /* Optional: Lighter shade on hover */
-	}
-
-    .header1 .main_menu > li > a:hover {
-        color: #ddd;
-    } {% endcomment %}
 </style>
 
 <!-- Header -->
@@ -76,13 +56,16 @@
                 <span class="topbar-email">
                     <a href="mailto:nanabrightatsiatorme@gmail.com" style="color: white;">ecstada@gmail.com</a>
                 </span>
+                
                 {% if user.is_authenticated %}
                 <span class="flex items-center text-sm bg-gray-800 text-white rounded-full py-2 px-3 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600">
                     {{ user.username }}
                 </span>
 
                 {% endif %}
-                
+                <a href="{% url 'core:user-profile' %}" >
+                    <img src="{% static 'images/icons/icon-header-01.png' %}" class="header-icon1 ml-2" style="filter: brightness(0) invert(1);" alt="ICON">
+                </a>
             </div>
         </div>
 
@@ -99,23 +82,26 @@
                         <li><a href="/">Home</a></li>
                         <li><a href="/shop/">Shop</a></li>
                         {% categories %}
-                        {% if request.user.is_authenticated %}
                         <li>
                             <div class="header-wrapicon2">
                                 <a href="{% url 'core:order-summary' %}">
                                     <img src="{% static 'images/icons/icon-header-02.png' %}" class="header-icon1 js-show-header-dropdown" alt="ICON">
-                                    <span class="header-icons-noti">{{ request.user|cart_item_count }}</span>
+                                    <span class="header-icons-noti">{{ request|cart_item_count }}</span>
                                 </a>
                             </div>
                            
                         </li>
+                        {% if request.user.is_authenticated %}
+
                         <li>
                             
                             <a href="{% url 'core:my-orders' %}">
                                 Ordered
                             </a>
                         </li>
-                        <li><a href="{% url 'core:logout' %}">Logout</a></li>
+                        <li>
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</a>
+                        </li>
                         {% else %}
                         <li >
                             <a >Login</a>
@@ -135,44 +121,57 @@
     <div class="wrap_header_mobile">
         <a href="/" class="logo-mobile">
             <img src="{% static 'images/icons/ecstadaaa.png' %}" alt="IMG-LOGO" class="img-fluid logo-img">
-        
-        
         </a>
         
 
         <div class="btn-show-menu">
             <div class="header-icons-mobile">
-                <a href="#" class="header-wrapicon1 dis-block">
+                <a href="{% url 'core:user-profile' %}" class="header-wrapicon1 dis-block">
                     <img src="{% static 'images/icons/icon-header-01.png' %}" class="header-icon1" alt="ICON">
                 </a>
                 <span class="linedivide2"></span>
                 <div class="header-wrapicon2">
                     <img src="{% static 'images/icons/icon-header-02.png' %}" class="header-icon1 js-show-header-dropdown" alt="ICON">
-                    <span class="header-icons-noti">0</span>
+                    <span class="header-icons-noti">{{ request|cart_item_count }}</span>
                     <div class="header-cart header-dropdown">
                         <ul class="header-cart-wrapitem">
-                            <li class="header-cart-item">
-                                <div class="header-cart-item-img">
-                                    <img src="{% static 'images/item-cart-01.jpg' %}" alt="IMG">
-                                </div>
-                                <div class="header-cart-item-txt">
-                                    <a href="#" class="header-cart-item-name">White Shirt With Pleat Detail Back</a>
-                                    <span class="header-cart-item-info">1 x $19.00</span>
-                                </div>
-                            </li>
-                            <!-- Add more cart items here -->
+                            {% if cart_items %}
+                                {% for item in cart_items %}
+                                <li class="header-cart-item">
+                                    <div class="header-cart-item-img">
+                                        <img src="{{ item.item.image.url }}" alt="IMG">
+                                    </div>
+                                    <div class="header-cart-item-txt">
+                                        <a href="{% url 'core:product' slug=item.item.slug %}" class="header-cart-item-name">{{ item.item.title }}</a>
+                                        <span class="header-cart-item-info">{{ item.quantity }} x GHc{{ item.item.price }}</span>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                                <li class="header-cart-item">
+                                    <div class="header-cart-item-txt">
+                                        <span><b>Order Total :</b> GHc{{ total_price }}</span>
+                                    </div>
+                                </li>
+                            {% else %}
+                                <li class="header-cart-item">
+                                    <div class="header-cart-item-txt">
+                                        <span>Your cart is empty</span>
+                                    </div>
+                                </li>
+                            {% endif %}
                         </ul>
-                        <div class="header-cart-total">Total: $75.00</div>
                         <div class="header-cart-buttons">
                             <div class="header-cart-wrapbtn">
-                                <a href="cart.html" class="flex-c-m size1 bg1 bo-rad-20 hov1 s-text1 trans-0-4">View Cart</a>
+                                <a href="{% url 'core:order-summary' %}" class="flex-c-m size1 bg1 bo-rad-20 hov1 s-text1 trans-0-4">View Cart</a>
                             </div>
                             <div class="header-cart-wrapbtn">
-                                <a href="#" class="flex-c-m size1 bg1 bo-rad-20 hov1 s-text1 trans-0-4">Check Out</a>
+                                <a href="{% url 'core:checkout' %}" class="flex-c-m size1 bg1 bo-rad-20 hov1 s-text1 trans-0-4">Check Out</a>
                             </div>
                         </div>
                     </div>
+                    
                 </div>
+                
             </div>
             <div class="btn-show-menu-mobile hamburger hamburger--squeeze">
                 <span class="hamburger-box">
@@ -181,6 +180,27 @@
             </div>
         </div>
     </div>
+
+<!-- Logout Confirmation Modal -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="logoutModalLabel">Confirm Logout</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to log out?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <a href="{% url 'core:logout' %}" class="btn btn-danger">Yes, Logout</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
 
     <!-- Menu Mobile -->
     <div class="wrap-side-menu">
@@ -191,8 +211,10 @@
                 </li>
                 <li class="item-topbar-mobile p-l-20 p-t-8 p-b-8">
                     <div class="topbar-child2-mobile">
-                        <span class="topbar-email">ecstada@gmail.com</span>
-                        
+                        <span class="topbar-email">
+                            <a class="topbar-email" href="mailto:nanabrightatsiatorme@gmail.com">ecstada@gmail.com</a>
+                        </span>
+                    
                     </div>
                 </li>
                 <li class="item-topbar-mobile p-l-10">
@@ -207,9 +229,9 @@
                 <li class="item-menu-mobile"><a href="/shop">Shop</a></li>
                 {% categories_mobile %}
                 {% if request.user.is_authenticated %}
-                <li class="item-menu-mobile">
-                    <a href="{% url 'core:order-summary' %}">Cart<span class="badge badge-dark">{{ request.user|cart_item_count }}</span></a>
-                </li>
+                {% comment %} <li class="item-menu-mobile">
+                    <a href="{% url 'core:order-summary' %}">Cart<span class="badge badge-dark">{{ request|cart_item_count }}</span></a>
+                </li> {% endcomment %}
                 <li class="item-menu-mobile">
                     <a href="{% url 'core:my-orders' %}">
                         Ordered
@@ -230,3 +252,7 @@
         </nav>
     </div>
 </header>
+
+<!-- Bootstrap JS (with Popper.js for modals) -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>

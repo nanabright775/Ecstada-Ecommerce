@@ -20,6 +20,7 @@ from .models import OtpToken
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.contrib.auth import authenticate, login, logout
+from django.urls import reverse
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
@@ -33,15 +34,14 @@ def signin(request):
         password = request.POST['password']
         user = authenticate(request, email=email, password=password)
         
-        if user is not None:    
+        if user is not None:
             login(request, user)
+            merge_cart_for_logged_in_user(user, request)  # Merge session cart with user cart
             messages.success(request, f"Hi {request.user.username}, you are now logged-in")
-            return redirect("/")  # Render the homepage directly
-        
+            return redirect(request.GET.get('next', '/'))  # Redirect to the URL the user intended to visit
         else:
             messages.warning(request, "Invalid credentials")
             return render(request, "account/login.html")  # Show login page with warning
-            # return redirect("signin/")
         
     return render(request, "account/login.html")
 
@@ -194,17 +194,44 @@ class HomeView(ListView):
     context_object_name = 'items'
 
 
-class OrderSummaryView(LoginRequiredMixin, View):
+
+class OrderSummaryView(View):
     def get(self, *args, **kwargs):
-        try:
-            order = Order.objects.get(user=self.request.user, ordered=False)
-            context = {
-                'object': order
-            }
-            return render(self.request, 'order_summary.html', context)
-        except ObjectDoesNotExist:
-            messages.error(self.request, "You do not have an active order")
-            return redirect("/")
+        if self.request.user.is_authenticated:
+            # Logic for logged-in users
+            try:
+                order = Order.objects.get(user=self.request.user, ordered=False)
+                context = {
+                    'object': order
+                }
+                return render(self.request, 'order_summary.html', context)
+            except ObjectDoesNotExist:
+                messages.error(self.request, "You do not have an active order")
+                return redirect("/")
+        else:
+            # Logic for anonymous users (session-based cart)
+            cart = self.request.session.get('cart', {})
+            items = []
+            total_price = 0
+
+            for slug, item_data in cart.items():
+                item = get_object_or_404(Item, slug=slug)
+                items.append({
+                    'item': item,
+                    'quantity': item_data['quantity']
+                })
+                total_price += item.price * item_data['quantity']
+
+            if items:
+                context = {
+                    'items': items,
+                    'total_price': total_price
+                }
+                return render(self.request, 'order_summary.html', context)
+            else:
+                messages.error(self.request, "Your cart is empty.")
+                return redirect("/")
+
 
 
 #To display the users paid item
@@ -259,10 +286,20 @@ class CategoryView(View):
 
 
 
+ 
 
-class CheckoutView(View):
+
+class CheckoutView(LoginRequiredMixin, View):
+    login_url = '/signin/'  # Redirect to login if not authenticated
+
     def get(self, *args, **kwargs):
+        # Check if the user is logged in
+        if not self.request.user.is_authenticated:
+            # Redirect to login page, with 'next' parameter set to the current checkout page
+            return redirect(f"{self.login_url}?next=checkout")
+
         try:
+            # For logged-in users, retrieve the order
             order = Order.objects.get(user=self.request.user, ordered=False)
             form = BillingAddressForm()
             context = {
@@ -279,6 +316,10 @@ class CheckoutView(View):
 
     def post(self, *args, **kwargs):
         form = BillingAddressForm(self.request.POST or None)
+        if not self.request.user.is_authenticated:
+            # Redirect to login page if not authenticated
+            return JsonResponse({"success": False, "error": "You need to log in to proceed with checkout."})
+
         try:
             order = Order.objects.get(user=self.request.user, ordered=False)
             if form.is_valid():
@@ -314,9 +355,25 @@ class CheckoutView(View):
 
 
 
-@login_required
+
 def add_to_cart(request, slug):
     item = get_object_or_404(Item, slug=slug)
+
+    # If the user is not logged in, use session to handle the cart
+    if not request.user.is_authenticated:
+        cart = request.session.get('cart', {})
+        if slug in cart:
+            cart[slug]['quantity'] += 1
+        else:
+            cart[slug] = {
+                'item_id': item.id,
+                'quantity': 1,
+            }
+        request.session['cart'] = cart
+        messages.info(request, "Item added to your cart.")
+        return redirect("core:order-summary")
+
+    # If user is logged in, continue with the usual cart logic
     order_item, created = OrderItem.objects.get_or_create(
         item=item,
         user=request.user,
@@ -329,11 +386,9 @@ def add_to_cart(request, slug):
             order_item.quantity += 1
             order_item.save()
             messages.info(request, "Item quantity was updated.")
-            return redirect("core:order-summary")
         else:
             order.items.add(order_item)
             messages.info(request, "Item was added to your cart.")
-            return redirect("core:order-summary")
     else:
         ordered_date = timezone.now()
         order = Order.objects.create(
@@ -344,15 +399,64 @@ def add_to_cart(request, slug):
 
 
 
-@login_required
-def remove_from_cart(request, slug):
-    item = get_object_or_404(Item, slug=slug)
-    order_qs = Order.objects.filter(
-        user=request.user,
-        ordered=False)
+#merge the cart for a logged in user
+def merge_cart_for_logged_in_user(user, request):
+    # Get the cart from the session
+    session_cart = request.session.get('cart', {})
+
+    if not session_cart:
+        return
+
+    # Get or create the user's order
+    order_qs = Order.objects.filter(user=user, ordered=False)
     if order_qs.exists():
         order = order_qs[0]
-        # check if the order item is in the order
+    else:
+        ordered_date = timezone.now()
+        order = Order.objects.create(user=user, ordered_date=ordered_date)
+
+    # Merge session cart with user's order
+    for slug, item_data in session_cart.items():
+        item = get_object_or_404(Item, id=item_data['item_id'])
+        order_item, created = OrderItem.objects.get_or_create(
+            item=item,
+            user=user,
+            ordered=False
+        )
+        if created:
+            order_item.quantity = item_data['quantity']
+            order_item.save()
+        else:
+            order_item.quantity += item_data['quantity']
+            order_item.save()
+
+        if not order.items.filter(item__slug=item.slug).exists():
+            order.items.add(order_item)
+
+    # Clear the session cart
+    request.session.pop('cart', None)
+
+
+
+
+def remove_from_cart(request, slug):
+    item = get_object_or_404(Item, slug=slug)
+
+    # If user is not logged in, remove item from session cart
+    if not request.user.is_authenticated:
+        cart = request.session.get('cart', {})
+        if slug in cart:
+            del cart[slug]
+            request.session['cart'] = cart
+            messages.info(request, "Item was removed from your cart.")
+        else:
+            messages.info(request, "Item was not in your cart.")
+        return redirect("core:order-summary")
+
+    # Continue with normal cart removal if user is logged in
+    order_qs = Order.objects.filter(user=request.user, ordered=False)
+    if order_qs.exists():
+        order = order_qs[0]
         if order.items.filter(item__slug=item.slug).exists():
             order_item = OrderItem.objects.filter(
                 item=item,
@@ -361,25 +465,33 @@ def remove_from_cart(request, slug):
             )[0]
             order.items.remove(order_item)
             messages.info(request, "Item was removed from your cart.")
-            return redirect("core:order-summary")
         else:
-            # add a message saying the user dosent have an order
             messages.info(request, "Item was not in your cart.")
-            return redirect("core:product", slug=slug)
     else:
-        # add a message saying the user dosent have an order
-        messages.info(request, "u don't have an active order.")
-        return redirect("core:product", slug=slug)
-    return redirect("core:product", slug=slug)
+        messages.info(request, "You don't have an active order.")
+    return redirect("core:order-summary")
 
 
 
-@login_required
 def remove_single_item_from_cart(request, slug):
     item = get_object_or_404(Item, slug=slug)
-    order_qs = Order.objects.filter(
-        user=request.user,
-        ordered=False)
+
+    # If the user is not logged in, modify the cart in session
+    if not request.user.is_authenticated:
+        cart = request.session.get('cart', {})
+        if slug in cart:
+            if cart[slug]['quantity'] > 1:
+                cart[slug]['quantity'] -= 1
+            else:
+                del cart[slug]
+            request.session['cart'] = cart
+            messages.info(request, "This item quantity was updated.")
+        else:
+            messages.info(request, "Item was not in your cart.")
+        return redirect("core:order-summary")
+
+    # Continue with the usual logic for logged-in users
+    order_qs = Order.objects.filter(user=request.user, ordered=False)
     if order_qs.exists():
         order = order_qs[0]
         # check if the order item is in the order
@@ -397,14 +509,12 @@ def remove_single_item_from_cart(request, slug):
             messages.info(request, "This item quantity was updated.")
             return redirect("core:order-summary")
         else:
-            # add a message saying the user dosent have an order
             messages.info(request, "Item was not in your cart.")
             return redirect("core:product", slug=slug)
     else:
-        # add a message saying the user dosent have an order
-        messages.info(request, "you don't have an active order.")
+        messages.info(request, "You don't have an active order.")
         return redirect("core:product", slug=slug)
-    return redirect("core:product", slug=slug)
+
 
 
 def get_coupon(request, code):
@@ -520,3 +630,18 @@ def delete_order(request, order_id):
 
 def thank_you_view(request):
     return render(request, 'thankyou.html')
+
+
+#users profile
+def user_profile(request):
+    if not request.user.is_authenticated:
+        return redirect('/signin')  # Redirect to login if not authenticated
+    
+    user = request.user
+    orders = Order.objects.filter(user=user).order_by('-ordered_date')
+    
+    context = {
+        'user': user,
+        'orders': orders,
+    }
+    return render(request, 'account/user_profile.html', context)

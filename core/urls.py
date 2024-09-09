@@ -21,7 +21,8 @@ from .views import (
     logout_view,
     my_orders,
     delete_order,
-    thank_you_view
+    thank_you_view,
+    user_profile
 )
 from django.views.generic import TemplateView
 app_name = 'core'
@@ -36,6 +37,7 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('checkout/', CheckoutView.as_view(), name='checkout'),
     path('thank-you/', thank_you_view, name='thank_you'),
+    path('profile/', user_profile, name='user-profile'),
     path('category/<slug>/', CategoryView.as_view(), name='category'),
     path('product/<slug>/', ItemDetailView.as_view(), name='product'),
     path('add-to-cart/<slug>/', add_to_cart, name='add-to-cart'),

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>User Profile</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5>Name: {{ user.username }}</h5>
+                            <h5>Email: {{ user.email }}</h5>
+                        </div>
+                    </div>
+
+                    <h4 class="mt-4">Order History</h4>
+                    <table class="table table-striped table-responsive">
+                        <thead>
+                            <tr>
+                                <th>Order Ref</th>
+                                <th>Ordered Date</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Items</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.ref_code }}</td>
+                                <td>{{ order.ordered_date }}</td>
+                                <td>GHc{{ order.get_total }}</td>
+                                <td>
+                                    {% if order.ordered %}
+                                    Ordered
+                                    {% else %}
+                                    Pending
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <ul class="list-unstyled">
+                                        {% for item in order.items.all %}
+                                        <li class="media mb-2">
+                                            <img src="{{ item.item.image.url }}" class="mr-3" style="width: 80px; height: 80px;" alt="{{ item.item.title }}">
+                                            <div class="media-body">
+                                                <h6 class="mt-0 mb-1">{{ item.item.title }}</h6>
+                                                Quantity: {{ item.quantity }} x GHc{{ item.item.price }}
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No orders found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

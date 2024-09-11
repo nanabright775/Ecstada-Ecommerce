@@ -38,15 +38,15 @@
     <div class="container-menu-header">
         <div class="topbar">
             <div class="topbar-social">
-                <a href="#" class="topbar-social-item fab fa-facebook"></a>
+                {% comment %} <a href="#" class="topbar-social-item fab fa-facebook"></a> {% endcomment %}
                 <a href="#" class="topbar-social-item fab fa-instagram"></a>
-                <a href="#" class="topbar-social-item fab fa-pinterest-p"></a>
+                {% comment %} <a href="#" class="topbar-social-item fab fa-pinterest-p"></a>
                 <a href="#" class="topbar-social-item fab fa-twitter"></a>
-                <a href="#" class="topbar-social-item fab fa-youtube"></a>
+                <a href="#" class="topbar-social-item fab fa-youtube"></a> {% endcomment %}
             </div>
 
             <div class="topbar-child1">
-                <form class="form-inline" action="/search/" method="GET">
+                <form class="form-inline" action="{% url 'core:shop' %}" method="GET">
                     <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" name="q">
                     <button class="btn btn-outline-light my-2 my-sm-0" type="submit">Search</button>
                 </form>
@@ -180,6 +180,17 @@
             </div>
         </div>
     </div>
+    <div class="input-group m-2">
+        <form class=" d-flex justify-content" action="{% url 'core:shop' %}" method="GET" style="width: 100%;">
+            
+            <input class="form-control mr-2 flex-grow-1" type="search" placeholder="Search" aria-label="Search" name="q" style="font-size: 14px;">
+            
+            <button class="btn btn-primary mr-4" type="submit" style="font-size: 14px;">
+                <i class="fas fa-search"></i>
+            </button>
+        </form>
+    </div> 
+
 
 <!-- Logout Confirmation Modal -->
 <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
@@ -219,10 +230,10 @@
                 </li>
                 <li class="item-topbar-mobile p-l-10">
                     <div class="topbar-social-mobile">
-                        <a href="#" class="topbar-social-item fab fa-facebook"></a>
+                        {% comment %} <a href="#" class="topbar-social-item fab fa-facebook"></a> {% endcomment %}
                         <a href="#" class="topbar-social-item fab fa-instagram"></a>
-                        <a href="#" class="topbar-social-item fab fa-pinterest-p"></a>
-                        <a href="#" class="topbar-social-item fab fa-youtube"></a>
+                        {% comment %} <a href="#" class="topbar-social-item fab fa-pinterest-p"></a>
+                        <a href="#" class="topbar-social-item fab fa-youtube"></a> {% endcomment %}
                     </div>
                 </li>
                 <li class="item-menu-mobile"><a href="/">Home</a></li>

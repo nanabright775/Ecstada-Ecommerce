@@ -30,20 +30,32 @@ def create_ref_code():
 
 def signin(request):
     if request.method == 'POST':
-        email = request.POST['username']  # This should be email, not username
-        password = request.POST['password']
+        email = request.POST.get('username')  # Get email input
+        password = request.POST.get('password')
+        
         user = authenticate(request, email=email, password=password)
         
         if user is not None:
+            # Log in the user
             login(request, user)
-            merge_cart_for_logged_in_user(user, request)  # Merge session cart with user cart
-            messages.success(request, f"Hi {request.user.username}, you are now logged-in")
-            return redirect(request.GET.get('next', '/'))  # Redirect to the URL the user intended to visit
+            merge_cart_for_logged_in_user(user, request)
+            
+            # Check if there was a saved cart from before logout
+            if 'saved_cart' in request.session:
+                request.session['cart'] = request.session.pop('saved_cart')
+                messages.info(request, "Your previous cart has been restored.")
+            
+            messages.success(request, f"Hi {user.username}, you are now logged in.")
+            next_url = request.GET.get('next', '/')
+            return redirect(next_url)
         else:
-            messages.warning(request, "Invalid credentials")
-            return render(request, "account/login.html")  # Show login page with warning
+            # Show warning message for invalid credentials
+            messages.warning(request, "Invalid credentials, please try again.")
+            return render(request, "account/login.html")  # Re-render login page with message
         
+    # If GET request, just render the login page
     return render(request, "account/login.html")
+
 
 
 def verify_email(request, username):
@@ -180,12 +192,14 @@ def payment_verification(request):
         return redirect("core:checkout")
 
 
-
-
 def logout_view(request):
+    # Save the cart before logging out
+    if 'cart' in request.session:
+        request.session['saved_cart'] = request.session['cart']
+    
     logout(request)
-    messages.success(request, "You have been logged out successfully.")
-    return redirect("/")  # Redirect to the sign-in page or any other page
+    messages.info(request, "You have been logged out.")
+    return redirect("/")
 
 
 class HomeView(ListView):
@@ -258,6 +272,14 @@ class ShopView(ListView):
     paginate_by = 6
     template_name = "shop.html"
 
+#function to search for items
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        query = self.request.GET.get('q')
+        if query:
+            queryset = queryset.filter(title__icontains=query)
+        return queryset
+
     
 class ItemDetailView(DetailView):
     model = Item
@@ -287,8 +309,6 @@ class CategoryView(View):
 
 
  
-
-
 class CheckoutView(LoginRequiredMixin, View):
     login_url = '/signin/'  # Redirect to login if not authenticated
 
@@ -645,3 +665,6 @@ def user_profile(request):
         'orders': orders,
     }
     return render(request, 'account/user_profile.html', context)
+
+
+#search items

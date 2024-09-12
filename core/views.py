@@ -109,7 +109,7 @@ def resend_otp(request):
             message = f"""
                                 Hi {user.username}, here is your OTP {otp.otp_code} 
                                 it expires in 5 minute, use the url below to redirect back to the website
-                                http://127.0.0.1:8000/verifyemail/{user.username}
+                                http://127.0.0.1:testing/verifyemail/{user.username}
                                 
                                 """
             sender = "clintonmatics@gmail.com"

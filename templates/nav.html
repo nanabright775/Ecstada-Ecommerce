@@ -248,7 +248,9 @@
                         Ordered
                     </a>
                 </li>
-                <li class="item-menu-mobile"><a href="{% url 'core:logout' %}">Logout</a></li>
+                <li class="item-menu-mobile">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</a>
+                </li>
                 {% else %}
                 <li class="item-menu-mobile">
                     <a>Login</a>
